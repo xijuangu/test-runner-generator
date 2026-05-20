@@ -34,8 +34,14 @@
   .side-card { padding:14px; }
   .progress-line { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; }
   .filters { display:grid; gap:7px; margin-top:14px; }
-  .filters input, .filters select, .tester-input { width:100%; height:30px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:5px 9px; background:var(--panel); color:var(--text); font-size:12px; line-height:18px; }
-  .tester-input::placeholder { color:#9ca3af; }
+  .filters input, .filters select { width:100%; height:30px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:5px 9px; background:var(--panel); color:var(--text); font-size:12px; line-height:18px; }
+  .tester-box { display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-height:30px; padding:3px 6px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--panel); }
+  .tester-box:focus-within { border-color:var(--accent); }
+  .tester-tag { display:inline-flex; align-items:center; gap:2px; padding:1px 6px; border-radius:var(--radius-pill); background:var(--accent-soft); color:var(--accent); font-size:12px; line-height:18px; }
+  .tester-tag-remove { border:none; background:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; opacity:.5; }
+  .tester-tag-remove:hover { opacity:1; }
+  .tester-input-inline { border:none; outline:none; background:none; font-size:12px; line-height:18px; color:var(--text); min-width:80px; flex:1; }
+  .tester-input-inline::placeholder { color:#9ca3af; }
   .nav-list { margin-top:12px; display:grid; gap:var(--gap-xs); }
   .nav-item { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--gap-sm); padding:8px 9px; border-radius:var(--radius-sm); text-decoration:none; color:var(--text); border:1px solid transparent; font-size:13px; }
   .nav-item:hover { background:#f8fafc; border-color:#edf2f7; }
@@ -185,7 +191,9 @@
       <section class="panel">
         <div class="info-box" style="margin-bottom:12px;">
           <h3>测试人员</h3>
-          <input id="testerInput" class="tester-input" placeholder="输入测试人员姓名，多人用逗号分隔" />
+          <div class="tester-box" id="testerBox">
+            <input id="testerInput" class="tester-input-inline" placeholder="输入姓名后按回车添加" />
+          </div>
         </div>
         <div class="info-grid" id="envGrid"></div>
       </section>
@@ -347,8 +355,40 @@ function initStatic() {
   document.querySelector('#tableList tbody').innerHTML = DATA.tables.map(t => `<tr><td><code>${escapeHtml(t.name)}</code></td><td>${escapeHtml(t.purpose)}</td></tr>`).join('');
   document.querySelector('#regressionTable tbody').innerHTML = DATA.regression.map(r => `<tr><td><a href="#${r.id}">${escapeHtml(r.id)}</a></td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.reason)}</td></tr>`).join('');
   const testerInput = document.getElementById('testerInput');
-  testerInput.value = state.testers || '';
-  testerInput.addEventListener('input', () => { state.testers = testerInput.value.trim(); save(); });
+  const testerBox = document.getElementById('testerBox');
+  state.testers = state.testers || [];
+  function renderTesters() {
+    const tags = testerBox.querySelectorAll('.tester-tag');
+    tags.forEach(t => t.remove());
+    state.testers.forEach((name, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tester-tag';
+      tag.textContent = name;
+      const remove = document.createElement('button');
+      remove.className = 'tester-tag-remove';
+      remove.textContent = '×';
+      remove.addEventListener('click', () => {
+        state.testers.splice(i, 1);
+        save();
+        renderTesters();
+      });
+      tag.appendChild(remove);
+      testerBox.insertBefore(tag, testerInput);
+    });
+  }
+  renderTesters();
+  testerInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const name = testerInput.value.trim();
+      if (name && !state.testers.includes(name)) {
+        state.testers.push(name);
+        save();
+        renderTesters();
+      }
+      testerInput.value = '';
+    }
+  });
   document.getElementById('closeLightbox').addEventListener('click', closeLightbox);
   document.getElementById('imageLightbox').addEventListener('click', event => {
     if (event.target.id === 'imageLightbox') closeLightbox();
@@ -858,7 +898,7 @@ async function buildReportHtml() {
 <div class="wrap">
   <header>
     <h1>风险管理模块测试报告</h1>
-    <p>测试人员：${escapeHtml(state.testers || '未填写')} ｜ 生成时间：${escapeHtml(generatedAt)} ｜ 通过率：${passRate}% ｜ 报告来源：测试执行页本地记录</p>
+    <p>测试人员：${escapeHtml((state.testers || []).join('、') || '未填写')} ｜ 生成时间：${escapeHtml(generatedAt)} ｜ 通过率：${passRate}% ｜ 报告来源：测试执行页本地记录</p>
     <div class="conclusion ${conclusion.cls}">
       <div><strong>${conclusion.text}</strong><p>${conclusion.desc}</p></div>
       <div class="progress"><span>${summary.passed}/${total} 已通过</span><div class="bar"><i></i></div></div>
