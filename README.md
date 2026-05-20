@@ -227,10 +227,10 @@ npx test-runner-generator --input data.json --output runner.html
 
 生成后的 HTML 支持在每条用例下上传多张图片。实现方式是：
 
-- 勾选状态、执行状态、备注仍保存在 `localStorage`。
-- 图片会压缩后保存到浏览器 IndexedDB，不直接写入 `localStorage`。
+- 勾选状态、执行状态、备注保存在 `localStorage`。
+- 图片压缩后保存到浏览器 IndexedDB，不占用 `localStorage` 空间。
 - 导出 HTML 测试报告时，图片会转换成内嵌 data URL 并显示在对应用例下方。
-- 侧边栏"本地存储"会统计文本进度和图片附件占用，旁边"清空"按钮会清空当前页面的进度、备注和图片。
+- 右上角红色"清空进度"按钮可一键清空当前页面的所有勾选、状态、备注和图片附件。
 
 单张原图超过 20 MB 时会跳过。普通截图会先压缩到最长边 1600px 左右，避免报告文件和浏览器存储快速膨胀。
 
