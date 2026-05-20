@@ -674,16 +674,10 @@ function renderReportList(items, caseId, prefix) {
     return `<li class="${checked ? 'checked' : ''}"><span class="mark">${checked ? '✓' : '□'}</span><span>${renderReportInline(item)}</span></li>`;
   }).join('');
 }
-function maskSensitiveEnvValue(label, value) {
-  if (/password|密码/i.test(label)) return '******';
-  if (label.includes('Body')) return String(value ?? '').replace(/"password"\s*:\s*"[^"]+"/, '"password": "******"');
-  return value;
-}
 function renderReportEnv(items) {
   if (!items?.length) return '<div class="box"><div class="kv"><span>说明</span><span>未配置</span></div></div>';
   return `<div class="box">${items.map(item => {
-    const value = maskSensitiveEnvValue(item.label, item.value);
-    const content = item.code ? `<pre>${escapeHtml(value)}</pre>` : renderReportInline(value);
+    const content = item.code ? `<pre>${escapeHtml(item.value)}</pre>` : renderReportInline(item.value);
     return `<div class="kv"><span>${escapeHtml(item.label)}</span><span>${content}</span></div>`;
   }).join('')}</div>`;
 }
