@@ -31,16 +31,11 @@
   .side-card, .panel, .case-card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
   .side-card { padding:14px; }
   .progress-line { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; }
-  .bar { height:8px; background:#eef2f7; border-radius:var(--radius-pill); overflow:hidden; }
-  .bar > i { display:block; height:100%; width:0%; background:var(--accent); transition:width .2s ease; }
   .filters { display:grid; gap:7px; margin-top:14px; }
   .filters input, .filters select { width:100%; height:30px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:5px 9px; background:var(--panel); color:var(--text); font-size:12px; line-height:18px; }
-  .storage-line { margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:var(--radius-md); background:#fcfcfd; display:grid; gap:var(--gap-sm); font-size:12px; color:var(--muted); }
+  .storage-line { margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:var(--radius-md); background:#fcfcfd; font-size:12px; color:var(--muted); }
   .storage-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .storage-head strong { color:var(--text); font-size:13px; }
-  .storage-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .storage-actions .btn { min-height:26px; padding:3px 7px; font-size:12px; border-radius:var(--radius-sm); }
-  .storage-warn { color:var(--block); }
   .nav-list { margin-top:12px; display:grid; gap:var(--gap-xs); }
   .nav-item { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--gap-sm); padding:8px 9px; border-radius:var(--radius-sm); text-decoration:none; color:var(--text); border:1px solid transparent; font-size:13px; }
   .nav-item:hover { background:#f8fafc; border-color:#edf2f7; }
@@ -168,8 +163,6 @@
         </div>
         <div class="storage-line">
           <div class="storage-head"><strong>本地存储</strong><span id="storageUsage">0 KB</span><button class="btn" id="clearStorageBtn">清空</button></div>
-          <div class="bar"><i id="storageBar"></i></div>
-          <div class="storage-actions"><span id="storageHint">当前页面进度占用</span></div>
         </div>
         <nav class="nav-list" id="caseNav"></nav>
       </div>
@@ -223,7 +216,6 @@
 <script>
 const DATA = {"placeholder":true};
 const STORAGE_KEY = DATA.storageKey || 'risk-test-runner-v2';
-const LOCAL_STORAGE_LIMIT_BYTES = 5 * 1024 * 1024;
 const IMAGE_DB_NAME = `${STORAGE_KEY}:images`;
 const IMAGE_STORE = 'images';
 const MAX_IMAGE_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -301,20 +293,9 @@ async function updateStorageUsage() {
   const textBytes = storageBytes();
   const photoBytes = await imageBytes();
   const totalBytes = textBytes + photoBytes;
-  let quota = 100 * 1024 * 1024; // 100 MB fallback
-  if (navigator.storage?.estimate) {
-    const estimate = await navigator.storage.estimate();
-    if (estimate.quota && estimate.quota > 0) quota = estimate.quota;
-  }
-  const percent = Math.min(100, Math.round(totalBytes / quota * 100));
   const usageEl = document.getElementById('storageUsage');
-  const barEl = document.getElementById('storageBar');
-  const hintEl = document.getElementById('storageHint');
-  if (!usageEl || !barEl || !hintEl) return;
+  if (!usageEl) return;
   usageEl.textContent = `${formatBytes(totalBytes)}（文本 ${formatBytes(textBytes)}，图片 ${formatBytes(photoBytes)}）`;
-  barEl.style.width = `${percent}%`;
-  hintEl.textContent = percent >= 80 ? '浏览器存储占用较高，建议导出报告后清空' : '清空可删除当前页面所有进度和图片附件';
-  hintEl.classList.toggle('storage-warn', percent >= 80);
 }
 function save() {
   try {
