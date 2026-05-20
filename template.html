@@ -400,6 +400,13 @@ function renderCases() {
           </div>
         </div>
       </article>`;
+  }).join('');
+  renderNav();
+  bindEvents();
+  applyFilters();
+  updateProgress();
+  DATA.cases.forEach(c => renderCaseImages(c.id));
+}
 
 function renderNav() {
   const nav = document.getElementById('caseNav');
