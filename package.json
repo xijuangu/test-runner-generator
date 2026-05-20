@@ -1,0 +1,25 @@
+{
+  "name": "test-runner-generator",
+  "version": "1.0.0",
+  "description": "将标准化测试数据（JSON/JSONL/CSV）转换成自包含 HTML 测试执行页，支持步骤勾选、状态标记、图片附件和进度自动保存",
+  "type": "module",
+  "main": "generate-test-runner.mjs",
+  "bin": {
+    "test-runner-generator": "generate-test-runner.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "generate": "node generate-test-runner.mjs"
+  },
+  "keywords": [
+    "test-runner",
+    "test-execution",
+    "qa",
+    "html-report",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

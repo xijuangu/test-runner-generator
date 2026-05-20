@@ -1,0 +1,4 @@
+node_modules/
+*.html
+!template.html
+.DS_Store

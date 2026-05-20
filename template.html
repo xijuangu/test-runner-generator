@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>风险管理模块测试执行页</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --panel:#ffffff; --line:#e5e7eb; --text:#1f2937; --muted:#6b7280;
+    --accent:#2563eb; --accent-soft:#eff6ff; --ok:#15803d; --fail:#b91c1c; --block:#a16207;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:7px; --radius-xs:5px; --radius-pill:999px;
+    --gap-xs:5px; --gap-sm:8px; --gap-md:12px; --gap-lg:18px;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif; background:var(--bg); color:var(--text); }
+  button, input, select, textarea { font:inherit; }
+  code, pre { font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; }
+  .app { min-height:100vh; }
+  .topbar { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.94); backdrop-filter:saturate(160%) blur(10px); border-bottom:1px solid var(--line); }
+  .topbar-inner { max-width:1440px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .title h1 { margin:0; font-size:20px; line-height:1.25; }
+  .title p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+  .toolbar { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .btn { border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:var(--radius-sm); min-height:30px; padding:5px 9px; cursor:pointer; white-space:nowrap; font-size:12px; line-height:18px; }
+  .btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .layout { max-width:1440px; margin:0 auto; padding:18px 24px 40px; display:grid; grid-template-columns:280px minmax(0,1fr); gap:var(--gap-lg); }
+  .sidebar { position:sticky; top:80px; align-self:start; max-height:calc(100vh - 96px); overflow:auto; }
+  .side-card, .panel, .case-card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
+  .side-card { padding:14px; }
+  .progress-line { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+  .bar { height:8px; background:#eef2f7; border-radius:var(--radius-pill); overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0%; background:var(--accent); transition:width .2s ease; }
+  .filters { display:grid; gap:7px; margin-top:14px; }
+  .filters input, .filters select { width:100%; height:30px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:5px 9px; background:var(--panel); color:var(--text); font-size:12px; line-height:18px; }
+  .storage-line { margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:var(--radius-md); background:#fcfcfd; display:grid; gap:var(--gap-sm); font-size:12px; color:var(--muted); }
+  .storage-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .storage-head strong { color:var(--text); font-size:13px; }
+  .storage-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .storage-actions .btn { min-height:26px; padding:3px 7px; font-size:12px; border-radius:var(--radius-sm); }
+  .storage-warn { color:var(--block); }
+  .nav-list { margin-top:12px; display:grid; gap:var(--gap-xs); }
+  .nav-item { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--gap-sm); padding:8px 9px; border-radius:var(--radius-sm); text-decoration:none; color:var(--text); border:1px solid transparent; font-size:13px; }
+  .nav-item:hover { background:#f8fafc; border-color:#edf2f7; }
+  .nav-item .dot { width:8px; height:8px; border-radius:var(--radius-pill); background:#cbd5e1; }
+  .nav-item.done .dot { background:var(--ok); } .nav-item.failed .dot { background:var(--fail); } .nav-item.blocked .dot { background:var(--block); }
+  .nav-item.hidden { display:none; }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:var(--radius-pill); background:#f3f4f6; color:#4b5563; font-size:12px; line-height:18px; white-space:nowrap; }
+  .badge.reg { background:#fff7ed; color:#9a3412; } .badge.api { background:#eef2ff; color:#3730a3; } .badge.front { background:#ecfdf5; color:#166534; }
+  main { display:grid; gap:14px; min-width:0; }
+  .panel { padding:16px; }
+  .section-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .section-title h2 { margin:0; font-size:17px; }
+  .section-title p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+  .summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+  .summary-item { border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:#fcfcfd; }
+  .summary-item strong { display:block; font-size:22px; line-height:1; margin-bottom:6px; }
+  .summary-item span { color:var(--muted); font-size:13px; }
+  .info-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+  .info-box { border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:#fcfcfd; }
+  .info-box h3 { margin:0 0 8px; font-size:14px; }
+  .kv { display:grid; grid-template-columns:90px 1fr; gap:8px; margin:7px 0; font-size:13px; }
+  .kv span:first-child { color:var(--muted); }
+  pre { margin:8px 0 0; padding:12px; background:#111827; color:#f9fafb; border-radius:var(--radius-md); overflow:auto; font-size:12px; line-height:1.55; }
+  .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:var(--radius-md); }
+  table { width:100%; border-collapse:collapse; font-size:13px; background:var(--panel); }
+  th, td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { background:#f9fafb; color:#374151; font-weight:600; } tr:last-child td { border-bottom:0; }
+  .case-list { display:grid; gap:12px; }
+  .case-card { scroll-margin-top:96px; overflow:hidden; }
+  .case-card.hidden { display:none; }
+  .case-head { padding:14px 16px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; }
+  .case-idline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+  .case-title { margin:0; font-size:16px; line-height:1.35; }
+  .case-sub { margin:6px 0 0; color:var(--muted); font-size:13px; }
+  .status-select { border:1px solid var(--line); border-radius:var(--radius-sm); height:30px; padding:5px 9px; background:var(--panel); min-width:96px; font-size:12px; line-height:18px; }
+  .case-body { padding:16px; display:grid; gap:14px; }
+  .precondition { padding:10px 12px; background:#f9fafb; border:1px dashed #d1d5db; border-radius:var(--radius-md); font-size:13px; }
+  .two-col { display:grid; grid-template-columns:1.08fr .92fr; gap:12px; align-items:start; }
+  .block { border:1px solid var(--line); border-radius:var(--radius-md); overflow:hidden; background:var(--panel); }
+  .block h4 { margin:0; padding:10px 12px; background:#f9fafb; border-bottom:1px solid var(--line); font-size:14px; }
+  .check-list { padding:8px 10px; display:grid; gap:6px; }
+  .check-item { display:grid; grid-template-columns:auto 1fr; gap:9px; align-items:start; padding:7px 6px; border-radius:var(--radius-sm); font-size:14px; line-height:1.55; }
+  .check-item:hover { background:#f8fafc; }
+  .check-item input { margin-top:4px; width:16px; height:16px; }
+  .check-item.checked .text { text-decoration:line-through; color:#6b7280; }
+  .text code { background:#f3f4f6; padding:2px 5px; border-radius:var(--radius-xs); color:#111827; font-size:12px; }
+  .notes-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start; }
+  textarea { width:100%; min-height:62px; resize:vertical; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--panel); color:var(--text); font-size:12px; line-height:1.55; }
+  textarea::placeholder { color:#9ca3af; font-size:12px; }
+  .small-actions { display:flex; flex-direction:column; gap:6px; }
+  .attachment-panel { border:1px solid var(--line); border-radius:var(--radius-md); background:var(--panel); overflow:hidden; }
+  .attachment-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:#f9fafb; border-bottom:1px solid var(--line); }
+  .attachment-head h4 { margin:0; font-size:14px; }
+  .file-btn { position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; }
+  .file-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .attachment-hint { padding:8px 12px 0; color:var(--muted); font-size:12px; }
+  .image-list { padding:10px 12px 12px; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+  .image-empty { color:var(--muted); font-size:13px; }
+  .image-card { border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; background:#fcfcfd; }
+  .image-card .preview-btn { display:block; width:100%; padding:0; border:0; background:#f3f4f6; cursor:zoom-in; }
+  .image-card img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#f3f4f6; }
+  .image-meta { padding:7px 8px; display:grid; gap:5px; font-size:12px; color:var(--muted); }
+  .image-meta strong { color:var(--text); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .image-meta .btn { padding:4px 7px; font-size:12px; border-radius:var(--radius-sm); justify-self:start; }
+  .lightbox { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; padding:28px; background:rgba(17,24,39,.88); }
+  .lightbox.open { display:flex; }
+  .lightbox img { max-width:100%; max-height:100%; object-fit:contain; background:#fff; box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .lightbox button { position:fixed; top:18px; right:18px; border:1px solid rgba(255,255,255,.35); background:rgba(17,24,39,.7); color:#fff; border-radius:8px; padding:7px 11px; cursor:pointer; font-size:13px; }
+  .lightbox-caption { position:fixed; left:24px; right:80px; bottom:18px; color:#f9fafb; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .divider-label { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; margin:8px 0 2px; }
+  .divider-label:before, .divider-label:after { content:""; height:1px; background:var(--line); flex:1; }
+  @media (max-width:980px) {
+    .layout { grid-template-columns:1fr; padding:14px; }
+    .sidebar { position:static; max-height:none; }
+    .summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .info-grid, .two-col { grid-template-columns:1fr; }
+    .case-head { grid-template-columns:1fr; }
+    .toolbar { justify-content:flex-start; }
+  }
+  @media print {
+    body { background:white; } .topbar, .sidebar, .notes-row, .toolbar, .attachment-panel { display:none !important; }
+    .layout { display:block; max-width:none; padding:0; } .panel, .case-card { box-shadow:none; border:1px solid #ddd; break-inside:avoid; margin-bottom:12px; }
+    .case-card.hidden { display:block; } .two-col { grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="title">
+        <h1 id="pageTitle">风险管理模块测试执行页</h1>
+        <p id="pageSubtitle">面向测试执行：按步骤勾选、记录结果、标记状态；所有进度自动保存在当前浏览器。</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="backTop">回到顶部</button>
+        <button class="btn" id="collapseDone">隐藏已通过</button>
+        <button class="btn" id="exportJsonBtn">导出JSON记录</button>
+        <button class="btn primary" id="exportHtmlBtn">导出HTML报告</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-card">
+        <div class="progress-line"><strong>执行进度</strong><span id="progressText">0/0</span></div>
+        <div class="bar"><i id="progressBar"></i></div>
+        <div class="summary-grid" style="grid-template-columns:repeat(2,1fr); margin-top:12px; gap:8px;">
+          <div class="summary-item"><strong id="passedCount">0</strong><span>已通过</span></div>
+          <div class="summary-item"><strong id="todoCount">0</strong><span>未完成</span></div>
+        </div>
+        <div class="filters">
+          <input id="searchInput" placeholder="搜索 TC 编号、标题、步骤" />
+          <select id="moduleFilter"><option value="all">全部模块</option></select>
+          <select id="typeFilter"><option value="all">全部类型</option><option value="regression">只看回归用例</option></select>
+          <select id="statusFilter">
+            <option value="all">全部状态</option>
+            <option value="todo">未开始</option>
+            <option value="running">执行中</option>
+            <option value="passed">已通过</option>
+            <option value="failed">失败</option>
+            <option value="blocked">阻塞</option>
+          </select>
+        </div>
+        <div class="storage-line">
+          <div class="storage-head"><strong>本地存储</strong><span id="storageUsage">0 KB</span></div>
+          <div class="bar"><i id="storageBar"></i></div>
+          <div class="storage-actions"><span id="storageHint">当前页面进度占用</span><button class="btn" id="clearStorageBtn">清空</button></div>
+        </div>
+        <nav class="nav-list" id="caseNav"></nav>
+      </div>
+    </aside>
+
+    <main>
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <h2>开始前准备</h2>
+            <p>测试人员先确认环境、登录方式和涉及数据表，然后从下方用例开始执行。</p>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-item"><strong id="caseTotal">17</strong><span>测试用例</span></div>
+          <div class="summary-item"><strong id="frontendTotal">15</strong><span>前端操作</span></div>
+          <div class="summary-item"><strong id="apiTotal">2</strong><span>接口边界</span></div>
+          <div class="summary-item"><strong id="regressionTotal">12</strong><span>回归必测</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="info-grid" id="envGrid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><h2>涉及数据表</h2><p>用于执行数据库校验、排查和回归验证。</p></div>
+        </div>
+        <div class="table-wrap"><table id="tableList"><thead><tr><th>表名</th><th>用途</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <div class="divider-label">测试用例执行区</div>
+      <section class="case-list" id="caseList"></section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><h2>回归测试清单</h2><p>建议每轮回归优先执行这些用例。</p></div>
+        </div>
+        <div class="table-wrap"><table id="regressionTable"><thead><tr><th>编号</th><th>名称</th><th>回归理由</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="lightbox" id="imageLightbox" aria-hidden="true">
+  <button type="button" id="closeLightbox">关闭</button>
+  <img id="lightboxImage" alt="">
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+
+<script>
+const DATA = {"placeholder":true};
+const STORAGE_KEY = DATA.storageKey || 'risk-test-runner-v2';
+const LOCAL_STORAGE_LIMIT_BYTES = 5 * 1024 * 1024;
+const IMAGE_DB_NAME = `${STORAGE_KEY}:images`;
+const IMAGE_STORE = 'images';
+const MAX_IMAGE_UPLOAD_BYTES = 20 * 1024 * 1024;
+const IMAGE_MAX_SIDE = 1600;
+const IMAGE_JPEG_QUALITY = 0.82;
+const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+let imageDbPromise;
+function storageBytes() {
+  return new Blob([localStorage.getItem(STORAGE_KEY) || '']).size;
+}
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+function openImageDb() {
+  if (imageDbPromise) return imageDbPromise;
+  if (typeof indexedDB === 'undefined') {
+    return Promise.reject(new Error('当前浏览器不支持 IndexedDB，无法保存图片附件。'));
+  }
+  imageDbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(IMAGE_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      const store = db.createObjectStore(IMAGE_STORE, {keyPath:'id'});
+      store.createIndex('caseId', 'caseId', {unique:false});
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  return imageDbPromise;
+}
+async function imageStoreRequest(mode, run) {
+  const db = await openImageDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IMAGE_STORE, mode);
+    const store = tx.objectStore(IMAGE_STORE);
+    const request = run(store);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+function listAllImages() {
+  return imageStoreRequest('readonly', store => store.getAll());
+}
+function listCaseImages(caseId) {
+  return imageStoreRequest('readonly', store => store.index('caseId').getAll(caseId));
+}
+function saveImageRecord(record) {
+  return imageStoreRequest('readwrite', store => store.put(record));
+}
+function deleteImageRecord(id) {
+  return imageStoreRequest('readwrite', store => store.delete(id));
+}
+async function deleteCaseImages(caseId) {
+  const images = await listCaseImages(caseId);
+  await Promise.all(images.map(image => deleteImageRecord(image.id)));
+}
+async function clearAllImages() {
+  try {
+    await imageStoreRequest('readwrite', store => store.clear());
+  } catch {
+    // Ignore unavailable IndexedDB during cleanup.
+  }
+}
+async function imageBytes() {
+  try {
+    const images = await listAllImages();
+    return images.reduce((sum, image) => sum + (image.size || image.blob?.size || 0), 0);
+  } catch {
+    return 0;
+  }
+}
+async function updateStorageUsage() {
+  const textBytes = storageBytes();
+  const photoBytes = await imageBytes();
+  const totalBytes = textBytes + photoBytes;
+  const estimate = navigator.storage?.estimate ? await navigator.storage.estimate() : null;
+  const quota = estimate?.quota || LOCAL_STORAGE_LIMIT_BYTES;
+  const percent = Math.min(100, Math.round(totalBytes / quota * 100));
+  const usageEl = document.getElementById('storageUsage');
+  const barEl = document.getElementById('storageBar');
+  const hintEl = document.getElementById('storageHint');
+  if (!usageEl || !barEl || !hintEl) return;
+  usageEl.textContent = `${formatBytes(totalBytes)}（文本 ${formatBytes(textBytes)}，图片 ${formatBytes(photoBytes)}）`;
+  barEl.style.width = `${percent}%`;
+  hintEl.textContent = percent >= 80 ? '浏览器存储占用较高，建议导出报告后清空' : '图片存入 IndexedDB，不占 localStorage 5 MB';
+  hintEl.classList.toggle('storage-warn', percent >= 80);
+}
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    alert('本地存储空间不足，建议先导出报告或清空当前页面进度。');
+    throw error;
+  } finally {
+    updateStorageUsage();
+  }
+}
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function renderInline(s) { return escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/"([^"]{1,18})"/g, '“$1”'); }
+function statusLabel(v) { return {todo:'未开始', running:'执行中', passed:'已通过', failed:'失败', blocked:'阻塞'}[v || 'todo']; }
+function statusClass(v) { return v || 'todo'; }
+function caseText(c) { return [c.id,c.title,c.name,c.precondition,...c.steps,...c.expected,c.module,c.category].join(' ').toLowerCase(); }
+function getCaseState(id) { state[id] ||= {status:'todo', checks:{}, notes:''}; return state[id]; }
+function openLightbox(src, captionText) {
+  const lightbox = document.getElementById('imageLightbox');
+  const image = document.getElementById('lightboxImage');
+  const caption = document.getElementById('lightboxCaption');
+  if (!lightbox || !image || !caption) return;
+  image.src = src;
+  image.alt = captionText || '图片附件';
+  caption.textContent = captionText || '';
+  lightbox.classList.add('open');
+  lightbox.setAttribute('aria-hidden', 'false');
+}
+function closeLightbox() {
+  const lightbox = document.getElementById('imageLightbox');
+  const image = document.getElementById('lightboxImage');
+  const caption = document.getElementById('lightboxCaption');
+  if (!lightbox || !image || !caption) return;
+  lightbox.classList.remove('open');
+  lightbox.setAttribute('aria-hidden', 'true');
+  image.removeAttribute('src');
+  image.alt = '';
+  caption.textContent = '';
+}
+function uniqueValues(items, key) {
+  return [...new Set(items.map(item => item[key]).filter(Boolean))];
+}
+function renderEnvValue(item) {
+  const value = item?.value ?? '';
+  return item?.code ? `<pre>${escapeHtml(value)}</pre>` : renderInline(value);
+}
+function renderEnvRows(items) {
+  if (!items?.length) return '<div class="info-box"><h3>测试环境</h3><div class="kv"><span>说明</span><span>未配置</span></div></div>';
+  return `<div class="info-box"><h3>测试环境</h3>${items.map(item => `<div class="kv"><span>${escapeHtml(item.label)}</span><span>${renderEnvValue(item)}</span></div>`).join('')}</div>`;
+}
+function initFilters() {
+  const moduleFilter = document.getElementById('moduleFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  moduleFilter.innerHTML = '<option value="all">全部模块</option>' + uniqueValues(DATA.cases, 'module').map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  typeFilter.innerHTML = '<option value="all">全部类型</option>' + uniqueValues(DATA.cases, 'category').map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('') + '<option value="regression">只看回归用例</option>';
+}
+
+function initStatic() {
+  document.title = DATA.title || '测试执行页';
+  document.getElementById('pageTitle').textContent = DATA.title || '测试执行页';
+  document.getElementById('pageSubtitle').textContent = DATA.subtitle || '';
+  initFilters();
+  document.getElementById('envGrid').innerHTML = renderEnvRows(DATA.env);
+  document.getElementById('caseTotal').textContent = DATA.cases.length;
+  document.getElementById('frontendTotal').textContent = DATA.summary?.frontend ?? DATA.cases.filter(c => c.category === '前端操作').length;
+  document.getElementById('apiTotal').textContent = DATA.summary?.api ?? DATA.cases.filter(c => c.category === '接口边界').length;
+  document.getElementById('regressionTotal').textContent = DATA.summary?.regression ?? DATA.cases.filter(c => c.regression).length;
+  document.querySelector('#tableList tbody').innerHTML = DATA.tables.map(t => `<tr><td><code>${escapeHtml(t.name)}</code></td><td>${escapeHtml(t.purpose)}</td></tr>`).join('');
+  document.querySelector('#regressionTable tbody').innerHTML = DATA.regression.map(r => `<tr><td><a href="#${r.id}">${escapeHtml(r.id)}</a></td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.reason)}</td></tr>`).join('');
+  document.getElementById('closeLightbox').addEventListener('click', closeLightbox);
+  document.getElementById('imageLightbox').addEventListener('click', event => {
+    if (event.target.id === 'imageLightbox') closeLightbox();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeLightbox();
+  });
+}
+
+function renderCases() {
+  const list = document.getElementById('caseList');
+  list.innerHTML = DATA.cases.map(c => {
+    const cs = getCaseState(c.id);
+    const typeBadge = c.category === '接口边界' ? '<span class="badge api">接口边界</span>' : '<span class="badge front">前端操作</span>';
+    const regBadge = c.regression ? '<span class="badge reg">回归必测</span>' : '';
+    const stepHtml = c.steps.map((s,i)=> `
+      <label class="check-item ${cs.checks['s'+i] ? 'checked' : ''}">
+        <input type="checkbox" data-case="${c.id}" data-check="s${i}" ${cs.checks['s'+i] ? 'checked' : ''}>
+        <span class="text"><strong>${i+1}.</strong> ${renderInline(s)}</span>
+      </label>`).join('');
+    const expHtml = c.expected.map((s,i)=> `
+      <label class="check-item ${cs.checks['e'+i] ? 'checked' : ''}">
+        <input type="checkbox" data-case="${c.id}" data-check="e${i}" ${cs.checks['e'+i] ? 'checked' : ''}>
+        <span class="text">${renderInline(s)}</span>
+      </label>`).join('');
+    return `
+      <article class="case-card" id="${c.id}" data-id="${c.id}" data-module="${c.module}" data-category="${c.category}" data-regression="${c.regression}">
+        <div class="case-head">
+          <div>
+            <div class="case-idline"><span class="badge">${c.id}</span><span class="badge">${c.module}</span>${typeBadge}${regBadge}</div>
+            <h3 class="case-title">${escapeHtml(c.title)}</h3>
+            <p class="case-sub">${escapeHtml(c.name)}</p>
+          </div>
+          <select class="status-select" data-status-case="${c.id}">
+            ${['todo','running','passed','failed','blocked'].map(v => `<option value="${v}" ${cs.status===v?'selected':''}>${statusLabel(v)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="case-body">
+          <div class="precondition"><strong>测试前提：</strong>${renderInline(c.precondition)}</div>
+          <div class="two-col">
+            <div class="block"><h4>执行步骤</h4><div class="check-list">${stepHtml || '<div class="check-item">无</div>'}</div></div>
+            <div class="block"><h4>预期结果 / 验收点</h4><div class="check-list">${expHtml || '<div class="check-item">无</div>'}</div></div>
+          </div>
+          <div class="notes-row">
+            <textarea data-notes-case="${c.id}" placeholder="记录实际结果、失败现象、截图链接、缺陷单号等">${escapeHtml(cs.notes || '')}</textarea>
+            <div class="small-actions">
+              <button class="btn" data-mark-pass="${c.id}">标记通过</button>
+              <button class="btn" data-clear-case="${c.id}">清空本用例</button>
+            </div>
+          </div>
+          <div class="attachment-panel">
+            <div class="attachment-head">
+              <h4>图片附件</h4>
+              <label class="btn file-btn">上传图片<input type="file" accept="image/*" multiple data-image-case="${c.id}"></label>
+            </div>
+            <div class="attachment-hint">图片会压缩后保存到当前浏览器，导出 HTML 报告时会内嵌显示。</div>
+            <div class="image-list" data-image-list="${c.id}"><span class="image-empty">暂无图片</span></div>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+  renderNav();
+  bindEvents();
+  applyFilters();
+  updateProgress();
+  updateStorageUsage();
+  DATA.cases.forEach(c => renderCaseImages(c.id));
+}
+
+function renderNav() {
+  const nav = document.getElementById('caseNav');
+  nav.innerHTML = DATA.cases.map(c => {
+    const cs = getCaseState(c.id);
+    return `<a class="nav-item ${statusClass(cs.status)}" href="#${c.id}" data-nav-id="${c.id}"><span class="dot"></span><span>${c.id} ${escapeHtml(c.title.replace(/^.*?—\s*/, ''))}</span><small>${statusLabel(cs.status)}</small></a>`;
+  }).join('');
+}
+
+function bindEvents() {
+  document.querySelectorAll('input[type="checkbox"][data-case]').forEach(input => {
+    input.addEventListener('change', e => {
+      const id = e.target.dataset.case, key = e.target.dataset.check;
+      const cs = getCaseState(id);
+      cs.checks[key] = e.target.checked;
+      if (cs.status === 'todo') cs.status = 'running';
+      save(); renderCases();
+    });
+  });
+  document.querySelectorAll('[data-status-case]').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const cs = getCaseState(e.target.dataset.statusCase); cs.status = e.target.value; save(); renderCases();
+    });
+  });
+  document.querySelectorAll('[data-notes-case]').forEach(area => {
+    area.addEventListener('input', e => { getCaseState(e.target.dataset.notesCase).notes = e.target.value; save(); updateProgress(); });
+  });
+  document.querySelectorAll('[data-image-case]').forEach(input => {
+    input.addEventListener('change', e => handleImageUpload(e.target));
+  });
+  document.querySelectorAll('[data-delete-image]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      await deleteImageRecord(e.target.dataset.deleteImage);
+      await renderCaseImages(e.target.dataset.imageCase);
+      updateStorageUsage();
+    });
+  });
+  document.querySelectorAll('[data-mark-pass]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = e.target.dataset.markPass; const c = DATA.cases.find(x=>x.id===id); const cs = getCaseState(id);
+      cs.status = 'passed'; c.steps.forEach((_,i)=>cs.checks['s'+i]=true); c.expected.forEach((_,i)=>cs.checks['e'+i]=true);
+      save(); renderCases();
+    });
+  });
+  document.querySelectorAll('[data-clear-case]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      const id=e.target.dataset.clearCase;
+      state[id]={status:'todo',checks:{},notes:''};
+      await deleteCaseImages(id);
+      save();
+      renderCases();
+    });
+  });
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+function canvasToBlob(canvas, type, quality) {
+  return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+}
+async function compressImage(file) {
+  if (file.size <= 512 * 1024) return file;
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await loadImage(url);
+    const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await canvasToBlob(canvas, 'image/jpeg', IMAGE_JPEG_QUALITY);
+    return blob && blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+async function handleImageUpload(input) {
+  const caseId = input.dataset.imageCase;
+  const files = Array.from(input.files || []);
+  try {
+    await openImageDb();
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+        alert(`${file.name} 超过 20 MB，已跳过。`);
+        continue;
+      }
+      const blob = await compressImage(file);
+      await saveImageRecord({
+        id: `${caseId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        caseId,
+        name: file.name,
+        type: blob.type || file.type,
+        size: blob.size,
+        originalSize: file.size,
+        createdAt: new Date().toISOString(),
+        blob,
+      });
+    }
+  } catch (error) {
+    alert(error.message || '图片保存失败，请确认浏览器允许本地存储。');
+  }
+  input.value = '';
+  await renderCaseImages(caseId);
+  updateStorageUsage();
+}
+async function renderCaseImages(caseId) {
+  const list = document.querySelector(`[data-image-list="${caseId}"]`);
+  if (!list) return;
+  let images = [];
+  try {
+    images = await listCaseImages(caseId);
+  } catch {
+    list.innerHTML = '<span class="image-empty">当前浏览器无法读取图片附件</span>';
+    return;
+  }
+  list.innerHTML = '';
+  if (!images.length) {
+    list.innerHTML = '<span class="image-empty">暂无图片</span>';
+    return;
+  }
+  images.sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  images.forEach(image => {
+    const card = document.createElement('div');
+    card.className = 'image-card';
+    const img = document.createElement('img');
+    img.alt = image.name;
+    img.src = URL.createObjectURL(image.blob);
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'preview-btn';
+    previewBtn.type = 'button';
+    previewBtn.setAttribute('aria-label', `放大查看 ${image.name}`);
+    previewBtn.append(img);
+    previewBtn.addEventListener('click', () => openLightbox(img.src, image.name));
+    const meta = document.createElement('div');
+    meta.className = 'image-meta';
+    meta.innerHTML = `<strong title="${escapeHtml(image.name)}">${escapeHtml(image.name)}</strong><span>${formatBytes(image.size || 0)}</span>`;
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn';
+    deleteBtn.textContent = '删除';
+    deleteBtn.addEventListener('click', async () => {
+      await deleteImageRecord(image.id);
+      await renderCaseImages(caseId);
+      updateStorageUsage();
+    });
+    meta.append(deleteBtn);
+    card.append(previewBtn, meta);
+    list.append(card);
+  });
+}
+
+function updateProgress() {
+  let passed=0, todo=0, running=0, failed=0, blocked=0;
+  DATA.cases.forEach(c => {
+    const s = getCaseState(c.id).status;
+    if (s==='passed') passed++; else if (s==='failed') failed++; else if (s==='blocked') blocked++; else if (s==='running') running++; else todo++;
+  });
+  const total = DATA.cases.length;
+  document.getElementById('progressText').textContent = `${passed}/${total}`;
+  document.getElementById('progressBar').style.width = `${Math.round(passed / total * 100)}%`;
+  document.getElementById('passedCount').textContent = passed;
+  document.getElementById('todoCount').textContent = todo + running + failed + blocked;
+  document.querySelectorAll('[data-nav-id]').forEach(a => {
+    const st = getCaseState(a.dataset.navId).status;
+    a.className = 'nav-item ' + statusClass(st);
+    a.querySelector('small').textContent = statusLabel(st);
+  });
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const module = document.getElementById('moduleFilter').value;
+  const type = document.getElementById('typeFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  DATA.cases.forEach(c => {
+    const cs = getCaseState(c.id);
+    let ok = true;
+    if (q && !caseText(c).includes(q)) ok = false;
+    if (module !== 'all' && c.module !== module) ok = false;
+    if (type !== 'all' && type !== 'regression' && c.category !== type) ok = false;
+    if (type === 'regression' && !c.regression) ok = false;
+    if (status !== 'all' && cs.status !== status) ok = false;
+    if (hidePassed && cs.status === 'passed') ok = false;
+    document.querySelector(`[data-id="${c.id}"]`)?.classList.toggle('hidden', !ok);
+    document.querySelector(`[data-nav-id="${c.id}"]`)?.classList.toggle('hidden', !ok);
+  });
+}
+
+['searchInput','moduleFilter','typeFilter','statusFilter'].forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
+async function clearCurrentStorage() {
+  if(confirm('确定清空当前页面的所有勾选、状态、备注和图片附件吗？')) {
+    localStorage.removeItem(STORAGE_KEY);
+    await clearAllImages();
+    location.reload();
+  }
+}
+document.getElementById('clearStorageBtn').addEventListener('click', clearCurrentStorage);
+document.getElementById('backTop').addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+let hidePassed = false;
+document.getElementById('collapseDone').addEventListener('click', e => {
+  hidePassed = !hidePassed;
+  e.target.textContent = hidePassed ? '显示已通过' : '隐藏已通过';
+  applyFilters();
+});
+function getExecutionRows() {
+  return DATA.cases.map(c => {
+    const cs = getCaseState(c.id);
+    const stepDone = c.steps.filter((_,i) => cs.checks['s'+i]).length;
+    const expectedDone = c.expected.filter((_,i) => cs.checks['e'+i]).length;
+    return {
+      编号: c.id,
+      标题: c.title,
+      模块: c.module,
+      类型: c.category,
+      是否回归: c.regression ? '是' : '否',
+      状态: statusLabel(cs.status),
+      步骤完成: `${stepDone}/${c.steps.length}`,
+      验收点完成: `${expectedDone}/${c.expected.length}`,
+      备注: cs.notes || ''
+    };
+  });
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function dateForFilename() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function getStatusSummary() {
+  const summary = {todo:0, running:0, passed:0, failed:0, blocked:0};
+  DATA.cases.forEach(c => summary[getCaseState(c.id).status || 'todo']++);
+  return summary;
+}
+
+function reportConclusion(summary) {
+  if (summary.failed > 0) return {text:'测试不通过', cls:'bad', desc:'存在失败用例，需要修复或复测后再出具最终结论。'};
+  if (summary.blocked > 0) return {text:'测试阻塞', cls:'warn', desc:'存在阻塞用例，需先解除环境、数据或依赖问题。'};
+  if (summary.todo > 0 || summary.running > 0) return {text:'测试未完成', cls:'warn', desc:'仍有未开始或执行中的用例，当前报告为阶段性结果。'};
+  return {text:'测试通过', cls:'good', desc:'所有用例均已标记通过。'};
+}
+
+function renderReportInline(s) {
+  return escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function renderReportList(items, caseId, prefix) {
+  const cs = getCaseState(caseId);
+  return items.map((item, idx) => {
+    const checked = !!cs.checks[prefix + idx];
+    return `<li class="${checked ? 'checked' : ''}"><span class="mark">${checked ? '✓' : '□'}</span><span>${renderReportInline(item)}</span></li>`;
+  }).join('');
+}
+function maskSensitiveEnvValue(label, value) {
+  if (/password|密码/i.test(label)) return '******';
+  if (label.includes('Body')) return String(value ?? '').replace(/"password"\s*:\s*"[^"]+"/, '"password": "******"');
+  return value;
+}
+function renderReportEnv(items) {
+  if (!items?.length) return '<div class="box"><div class="kv"><span>说明</span><span>未配置</span></div></div>';
+  return `<div class="box">${items.map(item => {
+    const value = maskSensitiveEnvValue(item.label, item.value);
+    const content = item.code ? `<pre>${escapeHtml(value)}</pre>` : renderReportInline(value);
+    return `<div class="kv"><span>${escapeHtml(item.label)}</span><span>${content}</span></div>`;
+  }).join('')}</div>`;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function renderReportAttachments(caseId) {
+  const images = await listCaseImages(caseId);
+  if (!images.length) return '';
+  const items = await Promise.all(images
+    .sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+    .map(async image => {
+      const dataUrl = await blobToDataUrl(image.blob);
+      return `<figure><button class="image-preview-btn" type="button" aria-label="放大查看 ${escapeHtml(image.name)}"><img src="${dataUrl}" alt="${escapeHtml(image.name)}"></button><figcaption>${escapeHtml(image.name)} · ${formatBytes(image.size || 0)}</figcaption></figure>`;
+    }));
+  return `<div class="attachments"><strong>图片附件：</strong><div class="attachment-grid">${items.join('')}</div></div>`;
+}
+
+async function buildReportHtml() {
+  const generatedAt = new Date().toLocaleString();
+  const summary = getStatusSummary();
+  const total = DATA.cases.length;
+  const passRate = total ? Math.round(summary.passed / total * 100) : 0;
+  const conclusion = reportConclusion(summary);
+  const rows = getExecutionRows();
+  const notPassedRows = rows.filter(r => r.状态 !== '已通过');
+  const envHtml = renderReportEnv(DATA.env);
+
+  const statusCards = [
+    ['用例总数', total, ''],
+    ['已通过', summary.passed, 'good'],
+    ['失败', summary.failed, 'bad'],
+    ['阻塞', summary.blocked, 'warn'],
+    ['执行中', summary.running, ''],
+    ['未开始', summary.todo, '']
+  ].map(([label, value, cls]) => `<div class="metric ${cls}"><strong>${value}</strong><span>${label}</span></div>`).join('');
+
+  const notPassedTable = notPassedRows.length
+    ? `<table><thead><tr><th>编号</th><th>标题</th><th>模块</th><th>状态</th><th>备注</th></tr></thead><tbody>${
+        notPassedRows.map(r => `<tr><td>${escapeHtml(r.编号)}</td><td>${escapeHtml(r.标题)}</td><td>${escapeHtml(r.模块)}</td><td><span class="status">${escapeHtml(r.状态)}</span></td><td>${escapeHtml(r.备注 || '-')}</td></tr>`).join('')
+      }</tbody></table>`
+    : `<div class="empty">所有用例均已通过。</div>`;
+
+  const casesHtml = (await Promise.all(DATA.cases.map(async c => {
+    const cs = getCaseState(c.id);
+    const status = statusLabel(cs.status);
+    const stepDone = c.steps.filter((_,i) => cs.checks['s'+i]).length;
+    const expectedDone = c.expected.filter((_,i) => cs.checks['e'+i]).length;
+    const attachmentsHtml = await renderReportAttachments(c.id);
+    return `
+      <article class="case-card">
+        <div class="case-head">
+          <div>
+            <div class="meta">
+              <span>${escapeHtml(c.id)}</span>
+              <span>${escapeHtml(c.module)}</span>
+              <span>${escapeHtml(c.category)}</span>
+              ${c.regression ? '<span class="reg">回归必测</span>' : ''}
+            </div>
+            <h3>${escapeHtml(c.title)}</h3>
+            <p>${escapeHtml(c.name)}</p>
+          </div>
+          <div class="case-status ${cs.status || 'todo'}">${escapeHtml(status)}</div>
+        </div>
+        <div class="case-body">
+          <div class="precondition"><strong>测试前提：</strong>${renderReportInline(c.precondition)}</div>
+          <div class="cols">
+            <section>
+              <h4>执行步骤 <small>${stepDone}/${c.steps.length}</small></h4>
+              <ol>${renderReportList(c.steps, c.id, 's')}</ol>
+            </section>
+            <section>
+              <h4>预期结果 / 验收点 <small>${expectedDone}/${c.expected.length}</small></h4>
+              <ul>${renderReportList(c.expected, c.id, 'e')}</ul>
+            </section>
+          </div>
+          <div class="notes"><strong>实际结果 / 备注：</strong><p>${escapeHtml(cs.notes || '无')}</p></div>
+          ${attachmentsHtml}
+        </div>
+      </article>`;
+  }))).join('');
+
+  const tablesHtml = DATA.tables.map(t => `<tr><td><code>${escapeHtml(t.name)}</code></td><td>${escapeHtml(t.purpose)}</td></tr>`).join('');
+
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>风险管理模块测试报告</title>
+<style>
+  :root { --bg:#f6f7f9; --panel:#fff; --line:#e5e7eb; --text:#1f2937; --muted:#6b7280; --good:#15803d; --bad:#b91c1c; --warn:#a16207; --blue:#2563eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:28px 22px 48px; }
+  header { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:14px; box-shadow:0 1px 3px rgba(16,24,40,.08); }
+  h1 { margin:0; font-size:26px; line-height:1.25; }
+  header p { margin:8px 0 0; color:var(--muted); }
+  .conclusion { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-top:18px; padding:14px 16px; border-radius:12px; background:#f9fafb; border:1px solid var(--line); }
+  .conclusion strong { font-size:22px; }
+  .conclusion.good strong { color:var(--good); } .conclusion.bad strong { color:var(--bad); } .conclusion.warn strong { color:var(--warn); }
+  .progress { min-width:180px; text-align:right; }
+  .bar { height:8px; background:#eef2f7; border-radius:999px; overflow:hidden; margin-top:8px; }
+  .bar i { display:block; height:100%; width:${passRate}%; background:var(--blue); }
+  .metrics { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin:14px 0; }
+  .metric { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .metric strong { display:block; font-size:24px; line-height:1; }
+  .metric span { color:var(--muted); font-size:13px; }
+  .metric.good strong { color:var(--good); } .metric.bad strong { color:var(--bad); } .metric.warn strong { color:var(--warn); }
+  .panel, .case-card { background:var(--panel); border:1px solid var(--line); border-radius:14px; margin:14px 0; box-shadow:0 1px 3px rgba(16,24,40,.08); overflow:hidden; }
+  .panel { padding:18px; }
+  h2 { margin:0 0 12px; font-size:18px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; background:var(--panel); }
+  th, td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
+  th { background:#f9fafb; font-weight:600; color:#374151; }
+  tr:last-child td { border-bottom:0; }
+  code, pre { font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; }
+  code { background:#f3f4f6; border-radius:5px; padding:2px 5px; font-size:12px; }
+  pre { background:#111827; color:#f9fafb; padding:12px; border-radius:10px; overflow:auto; font-size:12px; }
+  .env { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .box { border:1px solid var(--line); background:#fcfcfd; border-radius:12px; padding:14px; }
+  .kv { display:grid; grid-template-columns:90px 1fr; gap:8px; margin:6px 0; font-size:14px; }
+  .kv span:first-child { color:var(--muted); }
+  .empty { padding:16px; border:1px dashed #d1d5db; border-radius:12px; background:#f9fafb; color:var(--muted); }
+  .case-head { display:flex; justify-content:space-between; gap:16px; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .case-head h3 { margin:7px 0 4px; font-size:17px; }
+  .case-head p { margin:0; color:var(--muted); font-size:14px; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; }
+  .meta span { display:inline-flex; border-radius:999px; background:#f3f4f6; padding:3px 8px; font-size:12px; color:#4b5563; }
+  .meta .reg { background:#fff7ed; color:#9a3412; }
+  .case-status { flex:0 0 auto; align-self:flex-start; border-radius:999px; padding:6px 12px; background:#f3f4f6; color:#4b5563; font-size:13px; }
+  .case-status.passed { color:var(--good); background:#ecfdf5; } .case-status.failed { color:var(--bad); background:#fef2f2; } .case-status.blocked { color:var(--warn); background:#fffbeb; }
+  .case-body { padding:16px 18px 18px; }
+  .precondition { padding:10px 12px; background:#f9fafb; border:1px dashed #d1d5db; border-radius:10px; margin-bottom:12px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  section { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  section h4 { margin:0; padding:10px 12px; background:#f9fafb; border-bottom:1px solid var(--line); font-size:14px; }
+  section small { color:var(--muted); font-weight:400; }
+  ol, ul { margin:0; padding:10px 12px; list-style:none; }
+  li { display:grid; grid-template-columns:24px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid #f3f4f6; }
+  li:last-child { border-bottom:0; }
+  li.checked { color:#4b5563; }
+  .mark { font-weight:700; color:#9ca3af; }
+  li.checked .mark { color:var(--good); }
+  .notes { margin-top:12px; border:1px solid var(--line); border-radius:12px; padding:12px; background:#fcfcfd; }
+  .notes p { margin:6px 0 0; white-space:pre-wrap; }
+  .attachments { margin-top:12px; border:1px solid var(--line); border-radius:12px; padding:12px; background:#fcfcfd; }
+  .attachment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-top:10px; }
+  figure { margin:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .image-preview-btn { display:block; width:100%; padding:0; border:0; background:#f3f4f6; cursor:zoom-in; }
+  figure img { display:block; width:100%; max-height:420px; object-fit:contain; background:#f3f4f6; }
+  figcaption { padding:8px 10px; color:var(--muted); font-size:12px; }
+  .lightbox { position:fixed; inset:0; z-index:999; display:none; align-items:center; justify-content:center; padding:28px; background:rgba(17,24,39,.88); }
+  .lightbox.open { display:flex; }
+  .lightbox img { max-width:100%; max-height:100%; object-fit:contain; background:#fff; box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .lightbox button { position:fixed; top:18px; right:18px; border:1px solid rgba(255,255,255,.35); background:rgba(17,24,39,.7); color:#fff; border-radius:8px; padding:7px 11px; cursor:pointer; font-size:13px; }
+  .lightbox-caption { position:fixed; left:24px; right:80px; bottom:18px; color:#f9fafb; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  footer { color:var(--muted); text-align:center; font-size:13px; margin-top:24px; }
+  @media (max-width:900px) { .metrics { grid-template-columns:repeat(2,1fr); } .env, .cols { grid-template-columns:1fr; } .case-head { display:block; } .case-status { display:inline-block; margin-top:10px; } }
+  @media print { body { background:white; } .wrap { max-width:none; padding:0; } header, .panel, .case-card { box-shadow:none; break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>风险管理模块测试报告</h1>
+    <p>生成时间：${escapeHtml(generatedAt)} ｜ 通过率：${passRate}% ｜ 报告来源：测试执行页本地记录</p>
+    <div class="conclusion ${conclusion.cls}">
+      <div><strong>${conclusion.text}</strong><p>${conclusion.desc}</p></div>
+      <div class="progress"><span>${summary.passed}/${total} 已通过</span><div class="bar"><i></i></div></div>
+    </div>
+  </header>
+
+  <div class="metrics">${statusCards}</div>
+
+  <section class="panel">
+    <h2>一、测试环境</h2>
+    <div class="env">${envHtml}</div>
+  </section>
+
+  <section class="panel">
+    <h2>二、未通过 / 未完成用例</h2>
+    ${notPassedTable}
+  </section>
+
+  <section class="panel">
+    <h2>三、涉及数据表</h2>
+    <table><thead><tr><th>表名</th><th>用途</th></tr></thead><tbody>${tablesHtml}</tbody></table>
+  </section>
+
+  <section class="panel">
+    <h2>四、执行明细</h2>
+    <table><thead><tr><th>编号</th><th>标题</th><th>模块</th><th>类型</th><th>回归</th><th>状态</th><th>步骤</th><th>验收点</th><th>备注</th></tr></thead><tbody>${
+      rows.map(r => `<tr><td>${escapeHtml(r.编号)}</td><td>${escapeHtml(r.标题)}</td><td>${escapeHtml(r.模块)}</td><td>${escapeHtml(r.类型)}</td><td>${escapeHtml(r.是否回归)}</td><td>${escapeHtml(r.状态)}</td><td>${escapeHtml(r.步骤完成)}</td><td>${escapeHtml(r.验收点完成)}</td><td>${escapeHtml(r.备注 || '-')}</td></tr>`).join('')
+    }</tbody></table>
+  </section>
+
+  <section>
+    <h2 style="margin:18px 0 10px;">五、逐条用例详情</h2>
+    ${casesHtml}
+  </section>
+
+  <footer>本报告由“风险管理模块测试执行页”自动生成，可直接归档、发送或打印为 PDF。</footer>
+</div>
+<div class="lightbox" id="imageLightbox" aria-hidden="true">
+  <button type="button" id="closeLightbox">关闭</button>
+  <img id="lightboxImage" alt="">
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+<script>
+(() => {
+  const lightbox = document.getElementById('imageLightbox');
+  const image = document.getElementById('lightboxImage');
+  const caption = document.getElementById('lightboxCaption');
+  const close = () => {
+    lightbox.classList.remove('open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    image.removeAttribute('src');
+    image.alt = '';
+    caption.textContent = '';
+  };
+  document.querySelectorAll('.image-preview-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const img = button.querySelector('img');
+      image.src = img.src;
+      image.alt = img.alt || '图片附件';
+      caption.textContent = img.alt || '';
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+    });
+  });
+  document.getElementById('closeLightbox').addEventListener('click', close);
+  lightbox.addEventListener('click', event => {
+    if (event.target === lightbox) close();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && lightbox.classList.contains('open')) close();
+  });
+})();
+<\/script>
+</body>
+</html>`;
+}
+
+document.getElementById('exportJsonBtn').addEventListener('click', () => {
+  downloadFile(JSON.stringify(getExecutionRows(), null, 2), '风险管理模块测试执行记录.json', 'application/json;charset=utf-8');
+});
+
+document.getElementById('exportHtmlBtn').addEventListener('click', async e => {
+  const btn = e.target;
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '正在导出...';
+  try {
+    downloadFile(await buildReportHtml(), `风险管理模块测试报告_${dateForFilename()}.html`, 'text/html;charset=utf-8');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
+});
+
+initStatic();
+renderCases();
+</script>
+</body>
+</html>
