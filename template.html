@@ -167,9 +167,9 @@
           </select>
         </div>
         <div class="storage-line">
-          <div class="storage-head"><strong>本地存储</strong><span id="storageUsage">0 KB</span></div>
+          <div class="storage-head"><strong>本地存储</strong><span id="storageUsage">0 KB</span><button class="btn" id="clearStorageBtn">清空</button></div>
           <div class="bar"><i id="storageBar"></i></div>
-          <div class="storage-actions"><span id="storageHint">当前页面进度占用</span><button class="btn" id="clearStorageBtn">清空</button></div>
+          <div class="storage-actions"><span id="storageHint">当前页面进度占用</span></div>
         </div>
         <nav class="nav-list" id="caseNav"></nav>
       </div>
@@ -301,16 +301,14 @@ async function updateStorageUsage() {
   const textBytes = storageBytes();
   const photoBytes = await imageBytes();
   const totalBytes = textBytes + photoBytes;
-  const estimate = navigator.storage?.estimate ? await navigator.storage.estimate() : null;
-  const quota = estimate?.quota || LOCAL_STORAGE_LIMIT_BYTES;
-  const percent = Math.min(100, Math.round(totalBytes / quota * 100));
+  const percent = Math.min(100, Math.round(textBytes / LOCAL_STORAGE_LIMIT_BYTES * 100));
   const usageEl = document.getElementById('storageUsage');
   const barEl = document.getElementById('storageBar');
   const hintEl = document.getElementById('storageHint');
   if (!usageEl || !barEl || !hintEl) return;
   usageEl.textContent = `${formatBytes(totalBytes)}（文本 ${formatBytes(textBytes)}，图片 ${formatBytes(photoBytes)}）`;
   barEl.style.width = `${percent}%`;
-  hintEl.textContent = percent >= 80 ? '浏览器存储占用较高，建议导出报告后清空' : '图片存入 IndexedDB，不占 localStorage 5 MB';
+  hintEl.textContent = percent >= 80 ? '浏览器存储占用较高，建议导出报告后清空' : '清空可删除当前页面所有进度和图片附件';
   hintEl.classList.toggle('storage-warn', percent >= 80);
 }
 function save() {
@@ -326,7 +324,7 @@ function save() {
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function renderInline(s) { return escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/"([^"]{1,18})"/g, '“$1”'); }
 function statusLabel(v) { return {todo:'未开始', running:'执行中', passed:'已通过', failed:'失败', blocked:'阻塞'}[v || 'todo']; }
-function statusClass(v) { return v || 'todo'; }
+function statusClass(v) { return v === 'passed' ? 'done' : (v || 'todo'); }
 function caseText(c) { return [c.id,c.title,c.name,c.precondition,...c.steps,...c.expected,c.module,c.category].join(' ').toLowerCase(); }
 function getCaseState(id) { state[id] ||= {status:'todo', checks:{}, notes:''}; return state[id]; }
 function openLightbox(src, captionText) {
@@ -436,7 +434,6 @@ function renderCases() {
               <h4>图片附件</h4>
               <label class="btn file-btn">上传图片<input type="file" accept="image/*" multiple data-image-case="${c.id}"></label>
             </div>
-            <div class="attachment-hint">图片会压缩后保存到当前浏览器，导出 HTML 报告时会内嵌显示。</div>
             <div class="image-list" data-image-list="${c.id}"><span class="image-empty">暂无图片</span></div>
           </div>
         </div>
