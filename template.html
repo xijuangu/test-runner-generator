@@ -301,7 +301,7 @@ async function updateStorageUsage() {
   const textBytes = storageBytes();
   const photoBytes = await imageBytes();
   const totalBytes = textBytes + photoBytes;
-  const percent = Math.min(100, Math.round(textBytes / LOCAL_STORAGE_LIMIT_BYTES * 100));
+  const percent = Math.min(100, Math.round(totalBytes / LOCAL_STORAGE_LIMIT_BYTES * 100));
   const usageEl = document.getElementById('storageUsage');
   const barEl = document.getElementById('storageBar');
   const hintEl = document.getElementById('storageHint');
