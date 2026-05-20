@@ -26,6 +26,8 @@
   .btn { border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:var(--radius-sm); min-height:30px; padding:5px 9px; cursor:pointer; white-space:nowrap; font-size:12px; line-height:18px; }
   .btn:hover { border-color:#cbd5e1; background:#f8fafc; }
   .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .btn.danger { background:var(--fail); border-color:var(--fail); color:white; }
+  .btn.danger:hover { background:#991b1b; border-color:#991b1b; }
   .layout { max-width:1440px; margin:0 auto; padding:18px 24px 40px; display:grid; grid-template-columns:280px minmax(0,1fr); gap:var(--gap-lg); }
   .sidebar { position:sticky; top:80px; align-self:start; max-height:calc(100vh - 96px); overflow:auto; }
   .side-card, .panel, .case-card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
@@ -33,9 +35,6 @@
   .progress-line { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; }
   .filters { display:grid; gap:7px; margin-top:14px; }
   .filters input, .filters select { width:100%; height:30px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:5px 9px; background:var(--panel); color:var(--text); font-size:12px; line-height:18px; }
-  .storage-line { margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:var(--radius-md); background:#fcfcfd; font-size:12px; color:var(--muted); }
-  .storage-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .storage-head strong { color:var(--text); font-size:13px; }
   .nav-list { margin-top:12px; display:grid; gap:var(--gap-xs); }
   .nav-item { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--gap-sm); padding:8px 9px; border-radius:var(--radius-sm); text-decoration:none; color:var(--text); border:1px solid transparent; font-size:13px; }
   .nav-item:hover { background:#f8fafc; border-color:#edf2f7; }
@@ -135,6 +134,7 @@
         <button class="btn" id="collapseDone">隐藏已通过</button>
         <button class="btn" id="exportJsonBtn">导出JSON记录</button>
         <button class="btn primary" id="exportHtmlBtn">导出HTML报告</button>
+        <button class="btn danger" id="clearStorageBtn">清空进度</button>
       </div>
     </div>
   </header>
@@ -160,9 +160,6 @@
             <option value="failed">失败</option>
             <option value="blocked">阻塞</option>
           </select>
-        </div>
-        <div class="storage-line">
-          <div class="storage-head"><strong>本地存储</strong><span id="storageUsage">0 KB</span><button class="btn" id="clearStorageBtn">清空</button></div>
         </div>
         <nav class="nav-list" id="caseNav"></nav>
       </div>
@@ -223,9 +220,6 @@ const IMAGE_MAX_SIDE = 1600;
 const IMAGE_JPEG_QUALITY = 0.82;
 const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 let imageDbPromise;
-function storageBytes() {
-  return new Blob([localStorage.getItem(STORAGE_KEY) || '']).size;
-}
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -281,30 +275,12 @@ async function clearAllImages() {
     // Ignore unavailable IndexedDB during cleanup.
   }
 }
-async function imageBytes() {
-  try {
-    const images = await listAllImages();
-    return images.reduce((sum, image) => sum + (image.size || image.blob?.size || 0), 0);
-  } catch {
-    return 0;
-  }
-}
-async function updateStorageUsage() {
-  const textBytes = storageBytes();
-  const photoBytes = await imageBytes();
-  const totalBytes = textBytes + photoBytes;
-  const usageEl = document.getElementById('storageUsage');
-  if (!usageEl) return;
-  usageEl.textContent = `${formatBytes(totalBytes)}（文本 ${formatBytes(textBytes)}，图片 ${formatBytes(photoBytes)}）`;
-}
 function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
     alert('本地存储空间不足，建议先导出报告或清空当前页面进度。');
     throw error;
-  } finally {
-    updateStorageUsage();
   }
 }
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -424,14 +400,6 @@ function renderCases() {
           </div>
         </div>
       </article>`;
-  }).join('');
-  renderNav();
-  bindEvents();
-  applyFilters();
-  updateProgress();
-  updateStorageUsage();
-  DATA.cases.forEach(c => renderCaseImages(c.id));
-}
 
 function renderNav() {
   const nav = document.getElementById('caseNav');
@@ -466,7 +434,6 @@ function bindEvents() {
     btn.addEventListener('click', async e => {
       await deleteImageRecord(e.target.dataset.deleteImage);
       await renderCaseImages(e.target.dataset.imageCase);
-      updateStorageUsage();
     });
   });
   document.querySelectorAll('[data-mark-pass]').forEach(btn => {
@@ -544,7 +511,6 @@ async function handleImageUpload(input) {
   }
   input.value = '';
   await renderCaseImages(caseId);
-  updateStorageUsage();
 }
 async function renderCaseImages(caseId) {
   const list = document.querySelector(`[data-image-list="${caseId}"]`);
@@ -583,7 +549,6 @@ async function renderCaseImages(caseId) {
     deleteBtn.addEventListener('click', async () => {
       await deleteImageRecord(image.id);
       await renderCaseImages(caseId);
-      updateStorageUsage();
     });
     meta.append(deleteBtn);
     card.append(previewBtn, meta);
